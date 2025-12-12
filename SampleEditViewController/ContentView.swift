@@ -10,200 +10,194 @@ import CoreData
 
 import UIKit
 
-enum EditMode {
-    case none
-    case brightness
-}
-
-class SampleEditViewController: UIViewController {
-
-    private let navBar = UINavigationBar()
-    private let editNavBar = UIView()
-    private let toolBar = UIToolbar()
-    private let imageView = UIImageView()
+class SampleEditViewController
+: UIViewController {
     
-    private var brightnessSlider: UISlider!
-    
-    private var editMode: EditMode = .none {
-        didSet { updateUIForMode() }
+    enum EditMode {
+        case none, drawing, filter, crop, brightness
     }
-
+    
+    var editMode: EditMode = .none {
+        didSet {
+            updateUIForMode()
+        }
+    }
+    
+    // MARK: - UI
+    let navBar = UIView()
+    let navTitleLabel = UILabel()
+    let backButton = UIButton(type: .system)
+    let doneButton = UIButton(type: .system)
+    
+    let toolBar = UIStackView()
+    let drawingButton = UIButton(type: .system)
+    let filterButton = UIButton(type: .system)
+    let cropButton = UIButton(type: .system)
+    let brightnessButton = UIButton(type: .system)
+    
+    // モード別コンテンツ
+    let drawingView = UIView()
+    let filterView = UIView()
+    let cropView = UIView()
+    let brightnessView = UIView()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .darkGray
-        
-        setupImageView()
-        setupBars()
-        setupBrightnessSlider()
+        view.backgroundColor = .black
+        setupNavBar()
+        setupToolBar()
+        setupModeViews()
+        updateUIForMode()
     }
     
-    private func setupImageView() {
-        imageView.image = UIImage(named: "sampleImage") // プロジェクトに画像を追加
-        imageView.contentMode = .scaleAspectFit
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(imageView)
+    // MARK: - NavBar
+    func setupNavBar() {
+        navBar.translatesAutoresizingMaskIntoConstraints = false
+        navBar.backgroundColor = .black
+        view.addSubview(navBar)
         
         NSLayoutConstraint.activate([
-            imageView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 100),
-            imageView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            imageView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            imageView.heightAnchor.constraint(equalToConstant: 300)
+            navBar.topAnchor.constraint(equalTo: view.topAnchor),
+            navBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            navBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            navBar.heightAnchor.constraint(equalToConstant: 88) // ステータスバー+44
+        ])
+        
+        // Back
+        backButton.setTitle("戻る", for: .normal)
+        backButton.tintColor = .white
+        backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
+        backButton.translatesAutoresizingMaskIntoConstraints = false
+        navBar.addSubview(backButton)
+        NSLayoutConstraint.activate([
+            backButton.leadingAnchor.constraint(equalTo: navBar.leadingAnchor, constant: 16),
+            backButton.bottomAnchor.constraint(equalTo: navBar.bottomAnchor, constant: -8)
+        ])
+        
+        // Done
+        doneButton.setTitle("完了", for: .normal)
+        doneButton.tintColor = .white
+        doneButton.addTarget(self, action: #selector(doneTapped), for: .touchUpInside)
+        doneButton.translatesAutoresizingMaskIntoConstraints = false
+        navBar.addSubview(doneButton)
+        NSLayoutConstraint.activate([
+            doneButton.trailingAnchor.constraint(equalTo: navBar.trailingAnchor, constant: -16),
+            doneButton.bottomAnchor.constraint(equalTo: navBar.bottomAnchor, constant: -8)
+        ])
+        
+        // Title
+        navTitleLabel.text = ""
+        navTitleLabel.textColor = .white
+        navTitleLabel.font = .boldSystemFont(ofSize: 18)
+        navTitleLabel.translatesAutoresizingMaskIntoConstraints = false
+        navBar.addSubview(navTitleLabel)
+        NSLayoutConstraint.activate([
+            navTitleLabel.centerXAnchor.constraint(equalTo: navBar.centerXAnchor),
+            navTitleLabel.bottomAnchor.constraint(equalTo: navBar.bottomAnchor, constant: -8)
         ])
     }
     
-    private func setupBars() {
-        // 通常ナビバー
-        // 編集バーの修正版
-        editNavBar.translatesAutoresizingMaskIntoConstraints = false
-        editNavBar.backgroundColor = .black
-        editNavBar.isHidden = true
-        view.addSubview(editNavBar)
-
-        // safeArea の上ではなく view の top に合わせる
-        NSLayoutConstraint.activate([
-            editNavBar.topAnchor.constraint(equalTo: view.topAnchor),  // ← safeArea ではなく view.top
-            editNavBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            editNavBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            editNavBar.heightAnchor.constraint(equalToConstant: 88)    // ステータスバー分 + ナビバー高さ (44+44)
-        ])
-        
-        // 編集ナビバー
-        editNavBar.translatesAutoresizingMaskIntoConstraints = false
-        editNavBar.backgroundColor = .black
-        editNavBar.isHidden = true
-        view.addSubview(editNavBar)
-        NSLayoutConstraint.activate([
-            editNavBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            editNavBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            editNavBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            editNavBar.heightAnchor.constraint(equalToConstant: 44)
-        ])
-        let editLabel = UILabel()
-        editLabel.text = "明るさ調整中"
-        editLabel.textColor = .white
-        editLabel.translatesAutoresizingMaskIntoConstraints = false
-        editNavBar.addSubview(editLabel)
-        NSLayoutConstraint.activate([
-            editLabel.centerXAnchor.constraint(equalTo: editNavBar.centerXAnchor),
-            editLabel.centerYAnchor.constraint(equalTo: editNavBar.centerYAnchor)
-        ])
-        
-        // 下ツールバー
+    // MARK: - Toolbar
+    func setupToolBar() {
+        toolBar.axis = .horizontal
+        toolBar.alignment = .center
+        toolBar.distribution = .equalSpacing
+        toolBar.spacing = 20
         toolBar.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(toolBar)
+        
         NSLayoutConstraint.activate([
             toolBar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            toolBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            toolBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            toolBar.heightAnchor.constraint(equalToConstant: 50)
+            toolBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            toolBar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            toolBar.heightAnchor.constraint(equalToConstant: 60)
         ])
         
-        let brightnessButton = UIBarButtonItem(title: "明るさ", style: .plain, target: self, action: #selector(selectBrightness))
-        let normalButton = UIBarButtonItem(title: "通常", style: .plain, target: self, action: #selector(selectNormal))
-        toolBar.setItems([brightnessButton, UIBarButtonItem.flexibleSpace(), normalButton], animated: false)
+        drawingButton.setTitle("お絵描き", for: .normal)
+        drawingButton.tintColor = .white
+        drawingButton.addTarget(self, action: #selector(selectDrawing), for: .touchUpInside)
+        
+        filterButton.setTitle("フィルター", for: .normal)
+        filterButton.tintColor = .white
+        filterButton.addTarget(self, action: #selector(selectFilter), for: .touchUpInside)
+        
+        cropButton.setTitle("トリミング", for: .normal)
+        cropButton.tintColor = .white
+        cropButton.addTarget(self, action: #selector(selectCrop), for: .touchUpInside)
+        
+        brightnessButton.setTitle("光度", for: .normal)
+        brightnessButton.tintColor = .white
+        brightnessButton.addTarget(self, action: #selector(selectBrightness), for: .touchUpInside)
+        
+        toolBar.addArrangedSubview(drawingButton)
+        toolBar.addArrangedSubview(filterButton)
+        toolBar.addArrangedSubview(cropButton)
+        toolBar.addArrangedSubview(brightnessButton)
     }
     
-    private func setupBrightnessSlider() {
-        brightnessSlider = UISlider()
-        brightnessSlider.minimumValue = -1.0
-        brightnessSlider.maximumValue = 1.0
-        brightnessSlider.value = 0
-        brightnessSlider.tintColor = .systemYellow
-        brightnessSlider.translatesAutoresizingMaskIntoConstraints = false
-        brightnessSlider.addTarget(self, action: #selector(brightnessChanged(_:)), for: .valueChanged)
-        view.addSubview(brightnessSlider)
-        
-        NSLayoutConstraint.activate([
-            brightnessSlider.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            brightnessSlider.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            brightnessSlider.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 20)
-        ])
-        
-        brightnessSlider.isHidden = true
-    }
-    
-    private func updateUIForMode() {
-        switch editMode {
-        case .none:
-            navBar.isHidden = false
-            editNavBar.isHidden = true
-            brightnessSlider.isHidden = true
-        case .brightness:
-            navBar.isHidden = true
-            editNavBar.isHidden = false
-            brightnessSlider.isHidden = false
+    // MARK: - Mode Views
+    func setupModeViews() {
+        let views = [drawingView, filterView, cropView, brightnessView]
+        for v in views {
+            v.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(v)
+            NSLayoutConstraint.activate([
+                v.topAnchor.constraint(equalTo: navBar.bottomAnchor),
+                v.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                v.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                v.bottomAnchor.constraint(equalTo: toolBar.topAnchor)
+            ])
+            v.isHidden = true
         }
+        drawingView.backgroundColor = .systemRed.withAlphaComponent(0.3)
+        filterView.backgroundColor = .systemGreen.withAlphaComponent(0.3)
+        cropView.backgroundColor = .systemBlue.withAlphaComponent(0.3)
+        brightnessView.backgroundColor = .systemYellow.withAlphaComponent(0.3)
     }
     
     // MARK: - Actions
-    @objc private func selectBrightness() { editMode = .brightness }
-    @objc private func selectNormal() { editMode = .none }
-    
-    @objc private func brightnessChanged(_ sender: UISlider) {
-        guard let originalImage = UIImage(named: "sampleImage") else { return }
-        imageView.image = applyBrightness(to: originalImage, value: sender.value)
+    @objc func backTapped() {
+        editMode = .none
     }
     
-    private func applyBrightness(to image: UIImage, value: Float) -> UIImage? {
-        guard let cgImage = image.cgImage else { return nil }
-        let ciImage = CIImage(cgImage: cgImage)
+    @objc func doneTapped() {
+        editMode = .none
+    }
+    
+    @objc func selectDrawing() { editMode = .drawing }
+    @objc func selectFilter() { editMode = .filter }
+    @objc func selectCrop() { editMode = .crop }
+    @objc func selectBrightness() { editMode = .brightness }
+    
+    // MARK: - Update UI
+    func updateUIForMode() {
+        // 全部隠す
+        drawingView.isHidden = true
+        filterView.isHidden = true
+        cropView.isHidden = true
+        brightnessView.isHidden = true
         
-        let filter = CIFilter(name: "CIColorControls")!
-        filter.setValue(ciImage, forKey: kCIInputImageKey)
-        filter.setValue(value, forKey: kCIInputBrightnessKey)
-        
-        let context = CIContext()
-        if let output = filter.outputImage,
-           let cgOutput = context.createCGImage(output, from: output.extent) {
-            return UIImage(cgImage: cgOutput)
+        switch editMode {
+        case .none:
+            navTitleLabel.text = ""
+            doneButton.isHidden = true
+        case .drawing:
+            drawingView.isHidden = false
+            navTitleLabel.text = "お絵描き"
+            doneButton.isHidden = false
+        case .filter:
+            filterView.isHidden = false
+            navTitleLabel.text = "フィルター"
+            doneButton.isHidden = false
+        case .crop:
+            cropView.isHidden = false
+            navTitleLabel.text = "トリミング"
+            doneButton.isHidden = false
+        case .brightness:
+            brightnessView.isHidden = false
+            navTitleLabel.text = "光度"
+            doneButton.isHidden = false
         }
-        return nil
-    }
-}
-
-
-
-// MARK: - ContentView
-struct ContentView: View {
-    var body: some View {
-        //NavigationView {
-            ListVCWrapper()
-                //.navigationTitle("Detail")
-                /*.toolbar {
-                    // 左側にボタン
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        Button(action: { print("＋ボタン tapped") }) {
-                            Image(systemName: "plus")
-                        }
-                    }
-                    
-                    // 右側にボタン
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button(action: { print("完了 tapped") }) {
-                            Text("Done")
-                        }
-                    }
-                }*/
-        //}
-    }
-}
-
-
-
-
-struct ListVCWrapper: UIViewControllerRepresentable {
-    @Environment(\.managedObjectContext) private var viewContext
-
-    func makeUIViewController(context: Context) -> UINavigationController {
-        let notesVC = SampleEditViewController()
-        //notesVC.viewContext = viewContext  // ← 修正
-        let nav = UINavigationController(rootViewController: notesVC)
-        nav.navigationBar.prefersLargeTitles = true
-        return nav
-    }
-
-    func updateUIViewController(_ uiViewController: UINavigationController, context: Context) {
-        // 必要に応じて状態を更新
     }
 }
 
