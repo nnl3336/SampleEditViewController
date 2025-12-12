@@ -53,17 +53,18 @@ class SampleEditViewController: UIViewController {
     
     private func setupBars() {
         // 通常ナビバー
-        navBar.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(navBar)
-        let normalItem = UINavigationItem(title: "通常モード")
-        navBar.items = [normalItem]
-        navBar.barTintColor = .black
-        navBar.tintColor = .white
+        // 編集バーの修正版
+        editNavBar.translatesAutoresizingMaskIntoConstraints = false
+        editNavBar.backgroundColor = .black
+        editNavBar.isHidden = true
+        view.addSubview(editNavBar)
+
+        // safeArea の上ではなく view の top に合わせる
         NSLayoutConstraint.activate([
-            navBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            navBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            navBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            navBar.heightAnchor.constraint(equalToConstant: 44)
+            editNavBar.topAnchor.constraint(equalTo: view.topAnchor),  // ← safeArea ではなく view.top
+            editNavBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            editNavBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            editNavBar.heightAnchor.constraint(equalToConstant: 88)    // ステータスバー分 + ナビバー高さ (44+44)
         ])
         
         // 編集ナビバー
