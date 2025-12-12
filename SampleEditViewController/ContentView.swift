@@ -12,12 +12,9 @@ import UIKit
 
 class GalleryViewController: UIViewController {
     
+    enum EditMode { case none, drawing, filter, crop, brightness }
     var editMode: EditMode = .none {
         didSet { updateUIForMode() }
-    }
-    
-    enum EditMode {
-        case none, crop
     }
     
     let navBar = UIView()
@@ -25,13 +22,10 @@ class GalleryViewController: UIViewController {
     let doneButton = UIButton(type: .system)
     
     let toolBar = UIStackView()
-    let cropButton = UIButton(type: .system)
     
-    // トリミングビュー
-    let cropView = UIView()
     let imageView = UIImageView()
     
-    // トリミング枠
+    // トリミング用オーバーレイ
     let cropOverlay = UIView()
     
     override func viewDidLoad() {
@@ -39,7 +33,7 @@ class GalleryViewController: UIViewController {
         view.backgroundColor = .black
         setupNavBar()
         setupToolBar()
-        setupCropView()
+        setupImageView()
     }
     
     // MARK: - NavBar
@@ -54,7 +48,6 @@ class GalleryViewController: UIViewController {
             navBar.heightAnchor.constraint(equalToConstant: 88)
         ])
         
-        // Title
         navTitleLabel.textColor = .white
         navTitleLabel.font = .boldSystemFont(ofSize: 18)
         navTitleLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -64,7 +57,6 @@ class GalleryViewController: UIViewController {
             navTitleLabel.bottomAnchor.constraint(equalTo: navBar.bottomAnchor, constant: -8)
         ])
         
-        // Done
         doneButton.setTitle("完了", for: .normal)
         doneButton.tintColor = .white
         doneButton.addTarget(self, action: #selector(applyCrop), for: .touchUpInside)
@@ -74,6 +66,7 @@ class GalleryViewController: UIViewController {
             doneButton.trailingAnchor.constraint(equalTo: navBar.trailingAnchor, constant: -16),
             doneButton.bottomAnchor.constraint(equalTo: navBar.bottomAnchor, constant: -8)
         ])
+        doneButton.isHidden = true
     }
     
     // MARK: - Toolbar
@@ -84,7 +77,6 @@ class GalleryViewController: UIViewController {
         toolBar.spacing = 20
         toolBar.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(toolBar)
-        
         NSLayoutConstraint.activate([
             toolBar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
             toolBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
@@ -92,92 +84,88 @@ class GalleryViewController: UIViewController {
             toolBar.heightAnchor.constraint(equalToConstant: 60)
         ])
         
-        cropButton.setTitle("トリミング", for: .normal)
-        cropButton.tintColor = .white
-        cropButton.addTarget(self, action: #selector(selectCrop), for: .touchUpInside)
-        toolBar.addArrangedSubview(cropButton)
+        let drawingBtn = UIButton(type: .system)
+        drawingBtn.setTitle("お絵描き", for: .normal)
+        drawingBtn.tintColor = .white
+        drawingBtn.addTarget(self, action: #selector(selectDrawing), for: .touchUpInside)
+        
+        let filterBtn = UIButton(type: .system)
+        filterBtn.setTitle("フィルター", for: .normal)
+        filterBtn.tintColor = .white
+        filterBtn.addTarget(self, action: #selector(selectFilter), for: .touchUpInside)
+        
+        let cropBtn = UIButton(type: .system)
+        cropBtn.setTitle("トリミング", for: .normal)
+        cropBtn.tintColor = .white
+        cropBtn.addTarget(self, action: #selector(selectCrop), for: .touchUpInside)
+        
+        let brightnessBtn = UIButton(type: .system)
+        brightnessBtn.setTitle("光度", for: .normal)
+        brightnessBtn.tintColor = .white
+        brightnessBtn.addTarget(self, action: #selector(selectBrightness), for: .touchUpInside)
+        
+        toolBar.addArrangedSubview(drawingBtn)
+        toolBar.addArrangedSubview(filterBtn)
+        toolBar.addArrangedSubview(cropBtn)
+        toolBar.addArrangedSubview(brightnessBtn)
     }
     
-    // MARK: - Crop View
-    func setupCropView() {
-        cropView.translatesAutoresizingMaskIntoConstraints = false
-        cropView.backgroundColor = UIColor.darkGray
-        view.addSubview(cropView)
-        NSLayoutConstraint.activate([
-            cropView.topAnchor.constraint(equalTo: navBar.bottomAnchor),
-            cropView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            cropView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            cropView.bottomAnchor.constraint(equalTo: toolBar.topAnchor)
-        ])
-        
-        // 画像
+    // MARK: - ImageView
+    func setupImageView() {
         imageView.image = UIImage(systemName: "photo")
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
-        cropView.addSubview(imageView)
+        view.addSubview(imageView)
         NSLayoutConstraint.activate([
-            imageView.centerXAnchor.constraint(equalTo: cropView.centerXAnchor),
-            imageView.centerYAnchor.constraint(equalTo: cropView.centerYAnchor),
-            imageView.widthAnchor.constraint(equalTo: cropView.widthAnchor, multiplier: 0.8),
-            imageView.heightAnchor.constraint(equalTo: cropView.heightAnchor, multiplier: 0.8)
+            imageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            imageView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            imageView.widthAnchor.constraint(equalToConstant: 200),
+            imageView.heightAnchor.constraint(equalToConstant: 200)
         ])
         
         // トリミング枠
         cropOverlay.layer.borderColor = UIColor.systemBlue.cgColor
         cropOverlay.layer.borderWidth = 2
-        cropOverlay.backgroundColor = UIColor.clear
+        cropOverlay.backgroundColor = .clear
         cropOverlay.translatesAutoresizingMaskIntoConstraints = false
-        cropView.addSubview(cropOverlay)
+        imageView.addSubview(cropOverlay)
+        cropOverlay.frame = CGRect(x: 20, y: 20, width: 160, height: 160)
         
-        // 初期サイズ
-        cropOverlay.frame = CGRect(x: 50, y: 50, width: 200, height: 200)
-        
-        // ドラッグジェスチャー
         let pan = UIPanGestureRecognizer(target: self, action: #selector(handleCropPan(_:)))
         cropOverlay.addGestureRecognizer(pan)
+        cropOverlay.isHidden = true
     }
     
-    @objc func selectCrop() {
-        editMode = .crop
-        navTitleLabel.text = "トリミング"
-        doneButton.isHidden = false
-        cropOverlay.isHidden = false
-    }
+    @objc func selectDrawing() { editMode = .drawing; updateTitle("お絵描き") }
+    @objc func selectFilter() { editMode = .filter; updateTitle("フィルター") }
+    @objc func selectCrop() { editMode = .crop; updateTitle("トリミング"); cropOverlay.isHidden = false; doneButton.isHidden = false }
+    @objc func selectBrightness() { editMode = .brightness; updateTitle("光度") }
+    
+    func updateTitle(_ text: String) { navTitleLabel.text = text }
     
     @objc func handleCropPan(_ sender: UIPanGestureRecognizer) {
-        let translation = sender.translation(in: cropView)
+        let translation = sender.translation(in: imageView)
         if let view = sender.view {
             view.center = CGPoint(x: view.center.x + translation.x, y: view.center.y + translation.y)
-            sender.setTranslation(.zero, in: cropView)
+            sender.setTranslation(.zero, in: imageView)
         }
     }
     
     @objc func applyCrop() {
-        guard let image = imageView.image else { return }
-        
-        // 画像の表示サイズに合わせてスケーリング
-        let imageFrame = imageView.frame
-        let scaleX = image.size.width / imageFrame.width
-        let scaleY = image.size.height / imageFrame.height
+        guard let img = imageView.image else { return }
+        let scaleX = img.size.width / imageView.frame.width
+        let scaleY = img.size.height / imageView.frame.height
         
         let cropRect = CGRect(
-            x: (cropOverlay.frame.origin.x - imageFrame.origin.x) * scaleX,
-            y: (cropOverlay.frame.origin.y - imageFrame.origin.y) * scaleY,
+            x: cropOverlay.frame.origin.x * scaleX,
+            y: cropOverlay.frame.origin.y * scaleY,
             width: cropOverlay.frame.width * scaleX,
             height: cropOverlay.frame.height * scaleY
         )
         
-        if let cgImage = image.cgImage?.cropping(to: cropRect) {
-            let croppedImage = UIImage(cgImage: cgImage)
-            imageView.image = croppedImage
-            
-            // 枠を元サイズにリセット
-            cropOverlay.frame = CGRect(
-                x: imageView.frame.minX + 20,
-                y: imageView.frame.minY + 20,
-                width: imageView.frame.width - 40,
-                height: imageView.frame.height - 40
-            )
+        if let cg = img.cgImage?.cropping(to: cropRect) {
+            imageView.image = UIImage(cgImage: cg)
+            cropOverlay.frame = CGRect(x: 20, y: 20, width: 160, height: 160)
         }
     }
     
