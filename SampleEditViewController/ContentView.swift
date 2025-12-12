@@ -116,6 +116,7 @@ class SampleEditViewController: UIViewController {
     @objc private func selectNormal() { editMode = .none }
 }
 
+
 // MARK: - ContentView
 struct ContentView: View {
     var body: some View {
