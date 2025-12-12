@@ -132,7 +132,12 @@ class GalleryViewController: UIViewController {
         imageView.image = UIImage(systemName: "photo")
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.layer.borderColor = UIColor.white.cgColor   // 線の色
+        imageView.layer.borderWidth = 1.0                      // 線の太さ
+        imageView.layer.cornerRadius = 0                       // 丸めたい場合は変更
+        imageView.clipsToBounds = true
         view.addSubview(imageView)
+        
         NSLayoutConstraint.activate([
             imageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             imageView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
