@@ -14,7 +14,7 @@ class GalleryViewController: UIViewController {
     
     enum EditState { case none, drawing, filter, crop, brightness }
     var editMode: EditState = .none {
-        didSet { updateUIForMode() }
+        didSet { updateEditUI() }
     }
     
     let navBar = UIView()
@@ -29,19 +29,14 @@ class GalleryViewController: UIViewController {
     let cropOverlay = UIView()
     
     // モードごとのコンテナ
-        let brightnessContainer = UIView()
-        let filterContainer = UIView()
-        let cropContainer = UIView()
-        let drawingContainer = UIView()
+    let brightnessContainer = UIView()
+    let filterContainer = UIView()
+    let cropContainer = UIView()
+    let drawingContainer = UIView()
     
-    // ← ここに描画ツールの状態を追加
-        enum DrawingTool {
-            case pen
-            case eraser
-        }
-        var currentTool: DrawingTool = .pen
-    
-    //***
+    // お絵描きツール状態
+    enum DrawingTool { case pen, eraser }
+    var currentTool: DrawingTool = .pen
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -51,22 +46,16 @@ class GalleryViewController: UIViewController {
         setupImageView()
     }
     
-    // MARK: - モード切り替え
-    func setMode(_ mode: EditState) {
-        editMode = mode
-        updateEditUI()
-    }
-
-    // MARK: - UI更新（お絵描きモード専用）
+    // MARK: - モード切替
     private func updateEditUI() {
-        // まず全部隠す
+        // 全部隠す
         brightnessContainer.isHidden = true
         filterContainer.isHidden = true
         cropContainer.isHidden = true
         drawingContainer.isHidden = true
-        
-        // 共通ツールバーは隠す
         toolBar.isHidden = true
+        doneButton.isHidden = true
+        cropOverlay.isHidden = true
         
         switch editMode {
         case .drawing:
@@ -74,18 +63,21 @@ class GalleryViewController: UIViewController {
             setupDrawingTools()
         case .brightness:
             brightnessContainer.isHidden = false
+            toolBar.isHidden = false
         case .filter:
             filterContainer.isHidden = false
+            toolBar.isHidden = false
         case .crop:
             cropContainer.isHidden = false
+            cropOverlay.isHidden = false
+            doneButton.isHidden = false
         case .none:
             toolBar.isHidden = false
         }
     }
-
+    
     // MARK: - お絵描きツール設置
     private func setupDrawingTools() {
-        // すでにボタンがある場合は削除
         drawingContainer.subviews.forEach { $0.removeFromSuperview() }
         
         let penButton = UIButton(type: .system)
@@ -107,28 +99,30 @@ class GalleryViewController: UIViewController {
         drawingContainer.addSubview(eraserButton)
         drawingContainer.addSubview(undoButton)
         
-        // 描画キャンバスも追加（例）
-        let canvas = UIView(frame: drawingContainer.bounds)
-        canvas.backgroundColor = UIColor.clear
+        // 描画キャンバス追加
+        let canvas = DrawingCanvas(frame: drawingContainer.bounds)
+        canvas.currentTool = currentTool
+        canvas.backgroundColor = .clear
         canvas.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         drawingContainer.addSubview(canvas)
     }
-
+    
+    // ペン・消しゴム切り替え時に反映
     @objc func selectPen() {
-        print("ペン選択")
         currentTool = .pen
+        drawingContainer.subviews.compactMap { $0 as? DrawingCanvas }.forEach { $0.currentTool = .pen }
     }
 
     @objc func selectEraser() {
-        print("消しゴム選択")
         currentTool = .eraser
+        drawingContainer.subviews.compactMap { $0 as? DrawingCanvas }.forEach { $0.currentTool = .eraser }
     }
 
     @objc func undoAction() {
-        print("Undo")
-        // undo処理
+        drawingContainer.subviews.compactMap { $0 as? DrawingCanvas }.forEach { $0.undo() }
     }
-
+    
+    
     // MARK: - NavBar
     func setupNavBar() {
         navBar.translatesAutoresizingMaskIntoConstraints = false
@@ -216,7 +210,6 @@ class GalleryViewController: UIViewController {
             imageView.heightAnchor.constraint(equalToConstant: 200)
         ])
         
-        // トリミング枠
         cropOverlay.layer.borderColor = UIColor.systemBlue.cgColor
         cropOverlay.layer.borderWidth = 2
         cropOverlay.backgroundColor = .clear
@@ -231,7 +224,7 @@ class GalleryViewController: UIViewController {
     
     @objc func selectDrawing() { editMode = .drawing; updateTitle("お絵描き") }
     @objc func selectFilter() { editMode = .filter; updateTitle("フィルター") }
-    @objc func selectCrop() { editMode = .crop; updateTitle("トリミング"); cropOverlay.isHidden = false; doneButton.isHidden = false }
+    @objc func selectCrop() { editMode = .crop; updateTitle("トリミング") }
     @objc func selectBrightness() { editMode = .brightness; updateTitle("光度") }
     
     func updateTitle(_ text: String) { navTitleLabel.text = text }
@@ -260,9 +253,5 @@ class GalleryViewController: UIViewController {
             imageView.image = UIImage(cgImage: cg)
             cropOverlay.frame = CGRect(x: 20, y: 20, width: 160, height: 160)
         }
-    }
-    
-    func updateUIForMode() {
-        cropOverlay.isHidden = (editMode != .crop)
     }
 }
