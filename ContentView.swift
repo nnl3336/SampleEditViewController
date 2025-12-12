@@ -22,19 +22,26 @@ class GalleryViewController: UIViewController {
     let filterContainer = UIView()
     let cropContainer = UIView()
     let drawingContainer = UIView()
+    
+    let cropOverlay = CropOverlay(frame: CGRect(x: 20, y: 20, width: 160, height: 160))
+
 
     override func viewDidLoad() {
-        super.viewDidLoad()
-        view.backgroundColor = .black
-        setupNavBar()
-        setupToolBar()
-        setupImageView()
-        setupContainers()
-        
-        // 初期状態
-        editMode = .none
-        updateEditUI()
-    }
+            super.viewDidLoad()
+            view.backgroundColor = .black
+            setupNavBar()
+            setupToolBar()
+            setupImageView()
+            setupContainers()
+            
+            // 初期状態
+            editMode = .none
+            updateEditUI()
+            
+            // CropOverlay を imageView に追加
+            imageView.addSubview(cropOverlay)
+            cropOverlay.isHidden = true
+        }
 
     // MARK: - UI 更新
     private func updateEditUI() {
@@ -132,10 +139,8 @@ class GalleryViewController: UIViewController {
         imageView.image = UIImage(systemName: "photo")
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.layer.borderColor = UIColor.white.cgColor   // 線の色
-        imageView.layer.borderWidth = 1.0                      // 線の太さ
-        imageView.layer.cornerRadius = 0                       // 丸めたい場合は変更
-        imageView.clipsToBounds = true
+        imageView.layer.borderColor = UIColor.white.cgColor
+        imageView.layer.borderWidth = 1
         view.addSubview(imageView)
         
         NSLayoutConstraint.activate([
@@ -144,6 +149,66 @@ class GalleryViewController: UIViewController {
             imageView.widthAnchor.constraint(equalToConstant: 200),
             imageView.heightAnchor.constraint(equalToConstant: 200)
         ])
+        
+        // トリミング枠（初期は非表示）
+        cropOverlay.layer.borderColor = UIColor.systemBlue.cgColor
+        cropOverlay.layer.borderWidth = 2
+        cropOverlay.backgroundColor = .clear
+        cropOverlay.frame = CGRect(x: 20, y: 20, width: 160, height: 160)
+        imageView.addSubview(cropOverlay)
+        cropOverlay.isHidden = true
+        
+        let pan = UIPanGestureRecognizer(target: self, action: #selector(handleCropPan(_:)))
+        cropOverlay.addGestureRecognizer(pan)
+    }
+    
+
+    
+    // 角を示すハンドル
+        let topLeftHandle = UIView()
+        let topRightHandle = UIView()
+        let bottomLeftHandle = UIView()
+        let bottomRightHandle = UIView()
+
+    // モード切替
+    @objc func selectCrop() {
+        editMode = .crop
+        cropOverlay.isHidden = false
+    }
+
+    // パンジェスチャーで移動
+    @objc func handleCropPan(_ sender: UIPanGestureRecognizer) {
+        let translation = sender.translation(in: imageView)
+        if let view = sender.view {
+            // 画像枠内に収める
+            var newCenter = CGPoint(x: view.center.x + translation.x, y: view.center.y + translation.y)
+            newCenter.x = max(view.frame.width/2, min(imageView.bounds.width - view.frame.width/2, newCenter.x))
+            newCenter.y = max(view.frame.height/2, min(imageView.bounds.height - view.frame.height/2, newCenter.y))
+            view.center = newCenter
+            sender.setTranslation(.zero, in: imageView)
+        }
+    }
+
+    // トリミング適用
+    @objc func applyCrop() {
+        guard let img = imageView.image else { return }
+        let scaleX = img.size.width / imageView.frame.width
+        let scaleY = img.size.height / imageView.frame.height
+        
+        let cropRect = CGRect(
+            x: cropOverlay.frame.origin.x * scaleX,
+            y: cropOverlay.frame.origin.y * scaleY,
+            width: cropOverlay.frame.width * scaleX,
+            height: cropOverlay.frame.height * scaleY
+        )
+        
+        if let cg = img.cgImage?.cropping(to: cropRect) {
+            imageView.image = UIImage(cgImage: cg)
+        }
+        
+        // 枠を初期位置に戻す
+        cropOverlay.frame = CGRect(x: 20, y: 20, width: 160, height: 160)
+        cropOverlay.isHidden = true
     }
 
     // MARK: - モードコンテナ
@@ -163,6 +228,119 @@ class GalleryViewController: UIViewController {
 
     @objc func selectDrawing() { editMode = .drawing }
     @objc func selectFilter() { editMode = .filter }
-    @objc func selectCrop() { editMode = .crop }
     @objc func selectBrightness() { editMode = .brightness }
+}
+
+// CropOverlay クラス
+class CropOverlay: UIView {
+
+    private let minSize: CGFloat = 50
+
+    // 角
+    private let topLeft = UIView(), topRight = UIView(), bottomLeft = UIView(), bottomRight = UIView()
+    // 辺の中間
+    private let topCenter = UIView(), bottomCenter = UIView(), leftCenter = UIView(), rightCenter = UIView()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        layer.borderColor = UIColor.systemBlue.cgColor
+        layer.borderWidth = 2
+        backgroundColor = .clear
+        setupHandles()
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    private func setupHandles() {
+        let handles = [topLeft, topRight, bottomLeft, bottomRight,
+                       topCenter, bottomCenter, leftCenter, rightCenter]
+
+        handles.forEach {
+            $0.backgroundColor = .white
+            $0.layer.borderColor = UIColor.black.cgColor
+            $0.layer.borderWidth = 1
+            $0.frame.size = CGSize(width: 20, height: 20)
+            addSubview($0)
+            let pan = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
+            $0.addGestureRecognizer(pan)
+        }
+        positionHandles()
+        
+        // overlay 自身の pan（移動用）
+        let movePan = UIPanGestureRecognizer(target: self, action: #selector(moveOverlay(_:)))
+        addGestureRecognizer(movePan)
+    }
+
+    func positionHandles() {
+        topLeft.frame.origin = CGPoint(x: -10, y: -10)
+        topRight.frame.origin = CGPoint(x: bounds.width-10, y: -10)
+        bottomLeft.frame.origin = CGPoint(x: -10, y: bounds.height-10)
+        bottomRight.frame.origin = CGPoint(x: bounds.width-10, y: bounds.height-10)
+        
+        topCenter.frame.origin = CGPoint(x: bounds.width/2-10, y: -10)
+        bottomCenter.frame.origin = CGPoint(x: bounds.width/2-10, y: bounds.height-10)
+        leftCenter.frame.origin = CGPoint(x: -10, y: bounds.height/2-10)
+        rightCenter.frame.origin = CGPoint(x: bounds.width-10, y: bounds.height/2-10)
+    }
+
+    @objc private func handlePan(_ sender: UIPanGestureRecognizer) {
+        guard let handle = sender.view else { return }
+        let translation = sender.translation(in: self)
+        sender.setTranslation(.zero, in: self)
+        var newFrame = frame
+
+        switch handle {
+        case topLeft:
+            newFrame.origin.x += translation.x
+            newFrame.origin.y += translation.y
+            newFrame.size.width -= translation.x
+            newFrame.size.height -= translation.y
+        case topRight:
+            newFrame.origin.y += translation.y
+            newFrame.size.width += translation.x
+            newFrame.size.height -= translation.y
+        case bottomLeft:
+            newFrame.origin.x += translation.x
+            newFrame.size.width -= translation.x
+            newFrame.size.height += translation.y
+        case bottomRight:
+            newFrame.size.width += translation.x
+            newFrame.size.height += translation.y
+        case topCenter:
+            newFrame.origin.y += translation.y
+            newFrame.size.height -= translation.y
+        case bottomCenter:
+            newFrame.size.height += translation.y
+        case leftCenter:
+            newFrame.origin.x += translation.x
+            newFrame.size.width -= translation.x
+        case rightCenter:
+            newFrame.size.width += translation.x
+        default:
+            break
+        }
+
+        // 最小サイズ制限
+        if newFrame.width >= minSize && newFrame.height >= minSize {
+            frame = newFrame
+            positionHandles()
+        }
+    }
+
+    @objc private func moveOverlay(_ sender: UIPanGestureRecognizer) {
+        let translation = sender.translation(in: superview)
+        sender.setTranslation(.zero, in: superview)
+        var newFrame = frame
+        newFrame.origin.x += translation.x
+        newFrame.origin.y += translation.y
+
+        // 親ビュー内に収める
+        if let parent = superview {
+            newFrame.origin.x = max(0, min(parent.bounds.width - newFrame.width, newFrame.origin.x))
+            newFrame.origin.y = max(0, min(parent.bounds.height - newFrame.height, newFrame.origin.y))
+        }
+
+        frame = newFrame
+        positionHandles()
+    }
 }
