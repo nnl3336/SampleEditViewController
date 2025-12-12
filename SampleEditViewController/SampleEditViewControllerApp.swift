@@ -53,7 +53,7 @@ struct ListVCWrapper: UIViewControllerRepresentable {
     @Environment(\.managedObjectContext) private var viewContext
 
     func makeUIViewController(context: Context) -> UINavigationController {
-        let notesVC = SampleEditViewController()
+        let notesVC = GalleryViewController()
         //notesVC.viewContext = viewContext  // ← 修正
         let nav = UINavigationController(rootViewController: notesVC)
         nav.navigationBar.prefersLargeTitles = true
