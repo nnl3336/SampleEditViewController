@@ -13,8 +13,6 @@ import UIKit
 enum EditMode {
     case none
     case brightness
-    case filter
-    case crop
 }
 
 class SampleEditViewController: UIViewController {
@@ -22,6 +20,9 @@ class SampleEditViewController: UIViewController {
     private let navBar = UINavigationBar()
     private let editNavBar = UIView()
     private let toolBar = UIToolbar()
+    private let imageView = UIImageView()
+    
+    private var brightnessSlider: UISlider!
     
     private var editMode: EditMode = .none {
         didSet { updateUIForMode() }
@@ -30,7 +31,24 @@ class SampleEditViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .darkGray
+        
+        setupImageView()
         setupBars()
+        setupBrightnessSlider()
+    }
+    
+    private func setupImageView() {
+        imageView.image = UIImage(named: "sampleImage") // プロジェクトに画像を追加
+        imageView.contentMode = .scaleAspectFit
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(imageView)
+        
+        NSLayoutConstraint.activate([
+            imageView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 100),
+            imageView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            imageView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            imageView.heightAnchor.constraint(equalToConstant: 300)
+        ])
     }
     
     private func setupBars() {
@@ -60,7 +78,7 @@ class SampleEditViewController: UIViewController {
             editNavBar.heightAnchor.constraint(equalToConstant: 44)
         ])
         let editLabel = UILabel()
-        editLabel.text = "編集中"
+        editLabel.text = "明るさ調整中"
         editLabel.textColor = .white
         editLabel.translatesAutoresizingMaskIntoConstraints = false
         editNavBar.addSubview(editLabel)
@@ -80,11 +98,27 @@ class SampleEditViewController: UIViewController {
         ])
         
         let brightnessButton = UIBarButtonItem(title: "明るさ", style: .plain, target: self, action: #selector(selectBrightness))
-        let filterButton = UIBarButtonItem(title: "フィルター", style: .plain, target: self, action: #selector(selectFilter))
-        let cropButton = UIBarButtonItem(title: "トリミング", style: .plain, target: self, action: #selector(selectCrop))
         let normalButton = UIBarButtonItem(title: "通常", style: .plain, target: self, action: #selector(selectNormal))
+        toolBar.setItems([brightnessButton, UIBarButtonItem.flexibleSpace(), normalButton], animated: false)
+    }
+    
+    private func setupBrightnessSlider() {
+        brightnessSlider = UISlider()
+        brightnessSlider.minimumValue = -1.0
+        brightnessSlider.maximumValue = 1.0
+        brightnessSlider.value = 0
+        brightnessSlider.tintColor = .systemYellow
+        brightnessSlider.translatesAutoresizingMaskIntoConstraints = false
+        brightnessSlider.addTarget(self, action: #selector(brightnessChanged(_:)), for: .valueChanged)
+        view.addSubview(brightnessSlider)
         
-        toolBar.setItems([brightnessButton, filterButton, cropButton, normalButton], animated: false)
+        NSLayoutConstraint.activate([
+            brightnessSlider.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            brightnessSlider.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            brightnessSlider.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 20)
+        ])
+        
+        brightnessSlider.isHidden = true
     }
     
     private func updateUIForMode() {
@@ -92,29 +126,40 @@ class SampleEditViewController: UIViewController {
         case .none:
             navBar.isHidden = false
             editNavBar.isHidden = true
-        case .brightness, .filter, .crop:
+            brightnessSlider.isHidden = true
+        case .brightness:
             navBar.isHidden = true
             editNavBar.isHidden = false
-        }
-        
-        // ツールバー背景色変更（デバッグ用）
-        switch editMode {
-        case .none:
-            toolBar.barTintColor = .black
-        case .brightness:
-            toolBar.barTintColor = .systemYellow
-        case .filter:
-            toolBar.barTintColor = .systemBlue
-        case .crop:
-            toolBar.barTintColor = .systemGreen
+            brightnessSlider.isHidden = false
         }
     }
     
+    // MARK: - Actions
     @objc private func selectBrightness() { editMode = .brightness }
-    @objc private func selectFilter() { editMode = .filter }
-    @objc private func selectCrop() { editMode = .crop }
     @objc private func selectNormal() { editMode = .none }
+    
+    @objc private func brightnessChanged(_ sender: UISlider) {
+        guard let originalImage = UIImage(named: "sampleImage") else { return }
+        imageView.image = applyBrightness(to: originalImage, value: sender.value)
+    }
+    
+    private func applyBrightness(to image: UIImage, value: Float) -> UIImage? {
+        guard let cgImage = image.cgImage else { return nil }
+        let ciImage = CIImage(cgImage: cgImage)
+        
+        let filter = CIFilter(name: "CIColorControls")!
+        filter.setValue(ciImage, forKey: kCIInputImageKey)
+        filter.setValue(value, forKey: kCIInputBrightnessKey)
+        
+        let context = CIContext()
+        if let output = filter.outputImage,
+           let cgOutput = context.createCGImage(output, from: output.extent) {
+            return UIImage(cgImage: cgOutput)
+        }
+        return nil
+    }
 }
+
 
 
 // MARK: - ContentView
