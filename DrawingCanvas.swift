@@ -7,22 +7,26 @@
 
 import UIKit
 
-// 描画用キャンバス
+// GalleryViewController の外に置く
+enum DrawingTool {
+    case pen
+    case eraser
+}
+
 class DrawingCanvas: UIView {
-    
-    var currentTool: GalleryViewController.DrawingTool = .pen
+
+    var currentTool: DrawingTool = .pen
     private var lines: [Line] = []
-    private var undoneLines: [Line] = []
-    
+
     struct Line {
         var points: [CGPoint]
         var color: UIColor
         var width: CGFloat
     }
-    
+
     private var currentLine: Line?
-    
-    // タッチ開始
+
+    // 描画開始
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
         let start = touch.location(in: self)
@@ -30,8 +34,8 @@ class DrawingCanvas: UIView {
         let width: CGFloat = currentTool == .pen ? 4 : 20
         currentLine = Line(points: [start], color: color, width: width)
     }
-    
-    // タッチ移動
+
+    // 描画移動
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first, var line = currentLine else { return }
         let point = touch.location(in: self)
@@ -40,12 +44,12 @@ class DrawingCanvas: UIView {
         lines.append(line)
         setNeedsDisplay()
     }
-    
+
     // 描画
     override func draw(_ rect: CGRect) {
         guard let context = UIGraphicsGetCurrentContext() else { return }
         context.setLineCap(.round)
-        
+
         for line in lines {
             context.beginPath()
             for (i, point) in line.points.enumerated() {
@@ -62,19 +66,25 @@ class DrawingCanvas: UIView {
             context.strokePath()
         }
     }
-    
-    // Undo
+
     func undo() {
         if !lines.isEmpty {
-            undoneLines.append(lines.removeLast())
+            lines.removeLast()
             setNeedsDisplay()
         }
     }
-    
-    // 消去
+
     func clear() {
         lines.removeAll()
-        undoneLines.removeAll()
         setNeedsDisplay()
+    }
+
+    // ←これが必須！
+    func renderToImage(size: CGSize) -> UIImage {
+        UIGraphicsBeginImageContextWithOptions(size, false, 0)
+        drawHierarchy(in: CGRect(origin: .zero, size: size), afterScreenUpdates: true)
+        let img = UIGraphicsGetImageFromCurrentImageContext() ?? UIImage()
+        UIGraphicsEndImageContext()
+        return img
     }
 }
