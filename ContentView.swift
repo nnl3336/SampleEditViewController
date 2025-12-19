@@ -32,16 +32,53 @@ final class GalleryViewController: UIViewController {
     }
 
     // ==================================================
-    // 基本プロパティ
+    //基本プロパティ
     // ==================================================
-
-    enum EditState { case none, drawing, filter, crop, brightness }
-
-    private var editMode: EditState = .none {
-        didSet { updateEditUI() }
+    
+    enum DrawingTool {
+        case pen
+        case eraser
+    }
+    private var drawingTool: DrawingTool = .pen {
+        didSet {
+            updateDrawingTool()
+        }
     }
 
-    // UI
+    private var penColor: UIColor = .systemRed
+    private var penWidth: CGFloat = 4.0
+
+    private var eraserWidth: CGFloat = 10.0
+    
+    private let canvasView = CanvasView()  // ←ここに置く
+
+    
+    // ==================================================
+    // Toolbars
+    // ==================================================
+    private let mainBar = UIStackView()
+    private let drawingBar = UIStackView()
+    private let filterBar = UIStackView()
+    private let cropBar = UIStackView()
+    private let brightnessBar = UIStackView()
+
+
+    // MARK: - Edit State
+    enum EditState {
+        case none
+        case drawing
+        case filter
+        case crop
+        case brightness
+    }
+
+    private var editMode: EditState = .none {
+        didSet {
+            updateEditUI()
+        }
+    }
+
+    // MARK: - UI
     private let navBar = UIView()
     private let navTitleLabel = UILabel()
     private let saveButton = UIButton(type: .system)
@@ -57,9 +94,30 @@ final class GalleryViewController: UIViewController {
         frame: CGRect(x: 20, y: 20, width: 160, height: 160)
     )
 
-    // Data
+    // MARK: - Data
     private var frc: NSFetchedResultsController<NSManagedObject>?
     private var isEditingMode: Bool = false
+}
+
+extension GalleryViewController {
+    
+    @objc func selectPen() {
+        drawingTool = .pen
+    }
+
+    @objc func selectEraser() {
+        drawingTool = .eraser
+    }
+
+    private func updateDrawingTool() {
+        switch drawingTool {
+        case .pen:
+            canvasView.tool = .pen
+        case .eraser:
+            canvasView.tool = .eraser
+        }
+    }
+
 }
 
 // ==================================================
@@ -84,23 +142,67 @@ extension GalleryViewController {
         toolBar.isHidden = false
     }
 
-    // Edit UI 更新
+    // Edit UI 更新　//updateUI
     private func updateEditUI() {
-        brightnessContainer.isHidden = editMode != .brightness
-        filterContainer.isHidden = editMode != .filter
-        cropContainer.isHidden = editMode != .crop
-        drawingContainer.isHidden = editMode != .drawing
+        updateContainers()
+        updateToolBarForMode()
+        updateNavigationTitle()
+    }
+    
+    //updateToolBar
+    private func updateToolBarForMode() {
 
-        cropOverlay.isHidden = editMode != .crop
+        // ① まず全バーを隠す
+        [mainBar, drawingBar, filterBar, cropBar, brightnessBar].forEach {
+            $0.isHidden = true
+        }
 
+        // ② モードに応じて1つだけ表示
         switch editMode {
-        case .drawing: updateTitle("お絵描き")
-        case .filter: updateTitle("フィルター")
-        case .crop: updateTitle("トリミング")
-        case .brightness: updateTitle("光度")
-        case .none: updateTitle("ギャラリー")
+        case .none:
+            mainBar.isHidden = false
+
+        case .drawing:
+            drawingBar.isHidden = false
+
+        case .filter:
+            filterBar.isHidden = false
+
+        case .crop:
+            cropBar.isHidden = false
+
+        case .brightness:
+            brightnessBar.isHidden = false
         }
     }
+
+    
+    private func updateNavigationTitle() {
+        switch editMode {
+        case .drawing:
+            updateTitle("お絵描き")
+        case .filter:
+            updateTitle("フィルター")
+        case .crop:
+            updateTitle("トリミング")
+        case .brightness:
+            updateTitle("光度")
+        case .none:
+            updateTitle("ギャラリー")
+        }
+    }
+
+
+    
+    private func updateContainers() {
+        brightnessContainer.isHidden = editMode != .brightness
+        filterContainer.isHidden     = editMode != .filter
+        cropContainer.isHidden       = editMode != .crop
+        drawingContainer.isHidden    = editMode != .drawing
+
+        cropOverlay.isHidden = editMode != .crop
+    }
+
 
     private func updateTitle(_ text: String) {
         navTitleLabel.text = text
@@ -176,11 +278,11 @@ extension GalleryViewController {
         ]
 
         buttons.forEach { title, action in
-            let btn = UIButton(type: .system)
-            btn.setTitle(title, for: .normal)
-            btn.tintColor = .white
-            btn.addTarget(self, action: action, for: .touchUpInside)
-            toolBar.addArrangedSubview(btn)
+            let button = UIButton(type: .system)
+            button.setTitle(title, for: .normal)
+            button.tintColor = .white
+            button.addTarget(self, action: action, for: .touchUpInside)
+            toolBar.addArrangedSubview(button)
         }
     }
 
@@ -291,3 +393,36 @@ extension GalleryViewController {
         sender.setTranslation(.zero, in: imageView)
     }
 }
+
+//
+
+// 1本の線を表す構造体
+struct Line {
+    var points: [CGPoint]       // 線のポイント
+    var color: UIColor          // 線の色
+    var width: CGFloat          // 線の太さ
+    var tool: DrawingTool       // ペン or 消しゴム
+}
+
+private let canvasView = CanvasView()
+
+// CanvasView は UIView のサブクラスで描画処理を持つ
+class CanvasView: UIView {
+    private var lines: [Line] = []
+    var strokeColor: UIColor = .black
+    var strokeWidth: CGFloat = 5
+    var tool: DrawingTool = .pen
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        // 新しい線を開始
+    }
+
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        // 線を追加
+    }
+
+    override func draw(_ rect: CGRect) {
+        // 線を描画
+    }
+}
+
