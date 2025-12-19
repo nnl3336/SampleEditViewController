@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		186E8EBE2EEC0143001D7D5A /* CropOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186E8EBD2EEC0143001D7D5A /* CropOverlay.swift */; };
 		18B39D142EEBA78400F9C0C6 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18B39D132EEBA78400F9C0C6 /* ContentView.swift */; };
 		18B39D402EEBB09500F9C0C6 /* DrawingCanvas.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18B39D3F2EEBB09500F9C0C6 /* DrawingCanvas.swift */; };
 /* End PBXBuildFile section */
@@ -29,6 +30,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		186E8EBD2EEC0143001D7D5A /* CropOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CropOverlay.swift; sourceTree = "<group>"; };
 		18B39D092EEBA78400F9C0C6 /* SampleEditViewController.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SampleEditViewController.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		18B39D132EEBA78400F9C0C6 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		18B39D1F2EEBA78600F9C0C6 /* SampleEditViewControllerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SampleEditViewControllerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -83,6 +85,7 @@
 			isa = PBXGroup;
 			children = (
 				18B39D132EEBA78400F9C0C6 /* ContentView.swift */,
+				186E8EBD2EEC0143001D7D5A /* CropOverlay.swift */,
 				18B39D3F2EEBB09500F9C0C6 /* DrawingCanvas.swift */,
 				18B39D0B2EEBA78400F9C0C6 /* SampleEditViewController */,
 				18B39D222EEBA78600F9C0C6 /* SampleEditViewControllerTests */,
@@ -245,6 +248,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				186E8EBE2EEC0143001D7D5A /* CropOverlay.swift in Sources */,
 				18B39D402EEBB09500F9C0C6 /* DrawingCanvas.swift in Sources */,
 				18B39D142EEBA78400F9C0C6 /* ContentView.swift in Sources */,
 			);
