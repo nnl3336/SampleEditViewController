@@ -169,39 +169,42 @@ extension GalleryViewController {
     //updateToolBar
     private func updateToolBarForMode(animated: Bool = true) {
 
-        let bars = [mainBar, drawingBar, filterBar, cropBar, brightnessBar]
+        let allBars = [mainBar, drawingBar, filterBar, cropBar, brightnessBar]
 
-        // 表示対象を決定
+        // 表示するバーを決定
         let targetBar: UIStackView = {
             switch editMode {
-            case .none, .filter, .crop, .brightness:
-                return mainBar
-            case .drawing:
-                return drawingBar
+            case .none:        return mainBar
+            case .drawing:     return drawingBar
+            case .filter:      return mainBar
+            case .crop:        return mainBar
+            case .brightness:  return mainBar
             }
         }()
 
-        let changes = {
-            bars.forEach { $0.isHidden = ($0 !== targetBar) }
-            self.toolBar.layoutIfNeeded()
+        // ① まず全て非表示
+        allBars.forEach {
+            $0.isHidden = true
+            $0.alpha = 1
+            $0.transform = .identity
         }
 
-        if animated {
-            // 出てくるバーだけ軽くアニメ
-            targetBar.transform = CGAffineTransform(translationX: 0, y: 10)
-            targetBar.alpha = 0
-            targetBar.isHidden = false
+        // ② 表示バーだけ準備
+        targetBar.isHidden = false
 
-            UIView.animate(withDuration: 0.25,
-                           delay: 0,
-                           options: [.curveEaseOut]) {
-                changes()
-                targetBar.transform = .identity
-                targetBar.alpha = 1
-            }
-        } else {
-            changes()
-        }
+        guard animated else { return }
+
+        // ③ アニメーション初期状態
+        targetBar.alpha = 0
+        targetBar.transform = CGAffineTransform(translationX: 0, y: 16)
+
+        UIView.animate(withDuration: 0.25,
+                       delay: 0,
+                       options: [.curveEaseOut],
+                       animations: {
+            targetBar.alpha = 1
+            targetBar.transform = .identity
+        })
     }
 
     
