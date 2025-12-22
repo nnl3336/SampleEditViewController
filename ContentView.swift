@@ -169,28 +169,35 @@ extension GalleryViewController {
     //updateToolBar
     private func updateToolBarForMode(animated: Bool = true) {
 
-        let changes = {
-            [self.mainBar, self.drawingBar, self.filterBar, self.cropBar, self.brightnessBar]
-                .forEach { $0.isHidden = true }
+        let bars = [mainBar, drawingBar, filterBar, cropBar, brightnessBar]
 
-            switch self.editMode {
-            case .none:
-                self.mainBar.isHidden = false
+        // 表示対象を決定
+        let targetBar: UIStackView = {
+            switch editMode {
+            case .none, .filter, .crop, .brightness:
+                return mainBar
             case .drawing:
-                self.drawingBar.isHidden = false
-            case .filter:
-                self.mainBar.isHidden = false
-            case .crop:
-                self.mainBar.isHidden = false
-            case .brightness:
-                self.mainBar.isHidden = false
+                return drawingBar
             }
+        }()
+
+        let changes = {
+            bars.forEach { $0.isHidden = ($0 !== targetBar) }
             self.toolBar.layoutIfNeeded()
         }
 
         if animated {
-            UIView.animate(withDuration: 0.25) {
+            // 出てくるバーだけ軽くアニメ
+            targetBar.transform = CGAffineTransform(translationX: 0, y: 10)
+            targetBar.alpha = 0
+            targetBar.isHidden = false
+
+            UIView.animate(withDuration: 0.25,
+                           delay: 0,
+                           options: [.curveEaseOut]) {
                 changes()
+                targetBar.transform = .identity
+                targetBar.alpha = 1
             }
         } else {
             changes()
