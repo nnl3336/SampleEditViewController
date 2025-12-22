@@ -29,6 +29,7 @@ final class GalleryViewController: UIViewController {
         updateUI()
         updateNavBar()
         updateToolBar()
+        setupDrawingBar()
     }
 
     // ==================================================
@@ -99,6 +100,7 @@ final class GalleryViewController: UIViewController {
     private var isEditingMode: Bool = false
 }
 
+//Action //アクション
 extension GalleryViewController {
     
     @objc func selectPen() {
@@ -108,6 +110,17 @@ extension GalleryViewController {
     @objc func selectEraser() {
         drawingTool = .eraser
     }
+
+    @objc private func undoDrawing() {
+        //canvasView.undo()
+    }
+
+    @objc private func exitDrawing() {
+        editMode = .none
+        updateEditUI()
+        updateToolBarForMode()
+    }
+
 
     private func updateDrawingTool() {
         switch drawingTool {
@@ -285,6 +298,61 @@ extension GalleryViewController {
             toolBar.addArrangedSubview(button)
         }
     }
+    
+    private func setupDrawingBar() {
+        drawingBar.axis = .horizontal
+        drawingBar.alignment = .center
+        drawingBar.distribution = .equalSpacing
+        drawingBar.spacing = 20
+        drawingBar.translatesAutoresizingMaskIntoConstraints = false
+
+        let penButton = makeButton(
+            title: "✏️ ペン",
+            action: #selector(selectPen)
+        )
+
+        let eraserButton = makeButton(
+            title: "🧽 消しゴム",
+            action: #selector(selectEraser)
+        )
+
+        let undoButton = makeButton(
+            title: "↩︎",
+            action: #selector(undoDrawing)
+        )
+
+        let doneButton = makeButton(
+            title: "完了",
+            action: #selector(exitDrawing)
+        )
+
+        [penButton, eraserButton, undoButton, doneButton].forEach {
+            drawingBar.addArrangedSubview($0)
+        }
+
+        // 🔴 ここが一番重要
+        view.addSubview(drawingBar)
+
+        NSLayoutConstraint.activate([
+            drawingBar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            drawingBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            drawingBar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            drawingBar.heightAnchor.constraint(equalToConstant: 60)
+        ])
+    }
+    private func makeButton(
+        title: String,
+        action: Selector
+    ) -> UIButton {
+        let button = UIButton(type: .system)
+        button.setTitle(title, for: .normal)
+        button.tintColor = .white
+        button.addTarget(self, action: action, for: .touchUpInside)
+        return button
+    }
+
+
+
 
     // setupImageView
     func setupImageView() {
