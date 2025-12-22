@@ -20,18 +20,21 @@ final class GalleryViewController: UIViewController {
         setupUI()
         setupNavBar()
         setupToolBar()
+
+        setupMainBar()
+        setupDrawingBar()
+        setupFilterBar()
+        setupCropBar()
+        setupBrightnessBar()
+
         setupImageView()
         setupContainers()
-        setupGesture()
-        setupData()
-        setupFRC()
 
         updateUI()
         updateNavBar()
-        updateToolBar()
-        setupDrawingBar()
-        setupMainBar()
+        updateToolBarForMode()
     }
+
 
     // ==================================================
     //基本プロパティ
@@ -318,6 +321,46 @@ extension GalleryViewController {
         }
     }
 
+    func setupFilterBar() {
+        let buttons: [(String, Selector)] = [
+            ("お絵描き", #selector(selectDrawing)),
+            ("フィルター", #selector(selectFilter)),
+            ("トリミング", #selector(selectCrop)),
+            ("光度", #selector(selectBrightness))
+        ]
+
+        buttons.forEach { title, action in
+            filterBar.addArrangedSubview(makeButton(title: title, action: action))
+        }
+    }
+
+    func setupCropBar() {
+        let buttons: [(String, Selector)] = [
+            ("お絵描き", #selector(selectDrawing)),
+            ("フィルター", #selector(selectFilter)),
+            ("トリミング", #selector(selectCrop)),
+            ("光度", #selector(selectBrightness))
+        ]
+
+        buttons.forEach { title, action in
+            cropBar.addArrangedSubview(makeButton(title: title, action: action))
+        }
+    }
+
+    func setupBrightnessBar() {
+        let buttons: [(String, Selector)] = [
+            ("お絵描き", #selector(selectDrawing)),
+            ("フィルター", #selector(selectFilter)),
+            ("トリミング", #selector(selectCrop)),
+            ("光度", #selector(selectBrightness))
+        ]
+
+        buttons.forEach { title, action in
+            brightnessBar.addArrangedSubview(makeButton(title: title, action: action))
+        }
+    }
+
+    @objc func dummy() {}
 
 
     
