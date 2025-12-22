@@ -30,6 +30,7 @@ final class GalleryViewController: UIViewController {
         updateNavBar()
         updateToolBar()
         setupDrawingBar()
+        setupMainBar()
     }
 
     // ==================================================
@@ -270,19 +271,30 @@ extension GalleryViewController {
     // setupToolBar
     func setupToolBar() {
         toolBar.axis = .horizontal
-        toolBar.alignment = .center
-        toolBar.distribution = .equalSpacing
-        toolBar.spacing = 20
+        toolBar.alignment = .fill
+        toolBar.distribution = .fill
         toolBar.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(toolBar)
 
         NSLayoutConstraint.activate([
             toolBar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            toolBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            toolBar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            toolBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            toolBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             toolBar.heightAnchor.constraint(equalToConstant: 60)
         ])
 
+        // ⭐️ ここが超重要
+        [mainBar, drawingBar, filterBar, cropBar, brightnessBar].forEach {
+            $0.axis = .horizontal
+            $0.alignment = .center
+            $0.distribution = .equalSpacing
+            $0.spacing = 20
+            $0.isHidden = true
+            toolBar.addArrangedSubview($0)
+        }
+    }
+    
+    func setupMainBar() {
         let buttons: [(String, Selector)] = [
             ("お絵描き", #selector(selectDrawing)),
             ("フィルター", #selector(selectFilter)),
@@ -291,55 +303,24 @@ extension GalleryViewController {
         ]
 
         buttons.forEach { title, action in
-            let button = UIButton(type: .system)
-            button.setTitle(title, for: .normal)
-            button.tintColor = .white
-            button.addTarget(self, action: action, for: .touchUpInside)
-            toolBar.addArrangedSubview(button)
+            mainBar.addArrangedSubview(makeButton(title: title, action: action))
         }
     }
     
     private func setupDrawingBar() {
-        drawingBar.axis = .horizontal
-        drawingBar.alignment = .center
-        drawingBar.distribution = .equalSpacing
-        drawingBar.spacing = 20
-        drawingBar.translatesAutoresizingMaskIntoConstraints = false
-
-        let penButton = makeButton(
-            title: "✏️ ペン",
-            action: #selector(selectPen)
-        )
-
-        let eraserButton = makeButton(
-            title: "🧽 消しゴム",
-            action: #selector(selectEraser)
-        )
-
-        let undoButton = makeButton(
-            title: "↩︎",
-            action: #selector(undoDrawing)
-        )
-
-        let doneButton = makeButton(
-            title: "完了",
-            action: #selector(exitDrawing)
-        )
+        let penButton = makeButton(title: "✏️ ペン", action: #selector(selectPen))
+        let eraserButton = makeButton(title: "🧽 消しゴム", action: #selector(selectEraser))
+        let undoButton = makeButton(title: "↩︎", action: #selector(undoDrawing))
+        let doneButton = makeButton(title: "完了", action: #selector(exitDrawing))
 
         [penButton, eraserButton, undoButton, doneButton].forEach {
             drawingBar.addArrangedSubview($0)
         }
-
-        // 🔴 ここが一番重要
-        view.addSubview(drawingBar)
-
-        NSLayoutConstraint.activate([
-            drawingBar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            drawingBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            drawingBar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            drawingBar.heightAnchor.constraint(equalToConstant: 60)
-        ])
     }
+
+
+
+    
     private func makeButton(
         title: String,
         action: Selector
